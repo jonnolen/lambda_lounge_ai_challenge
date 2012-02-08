@@ -34,6 +34,41 @@ class Ant
 	def order direction
 		@ai.order self, direction
 	end
+  
+  def directions_to(destination)
+    half_height = @ai.rows / 2
+    half_width = @ai.cols / 2
+    
+    d = Array.new
+    
+    if (self.row < destination.row)
+      if destination.row - self.row >= half_height then d.push(:N) end
+      if destination.row - self.row < half_height then d.push(:S) end
+    end
+    if (destination.row < self.row)
+      if self.row - destination.row >= half_height then d.push(:S) end
+      if self.row - destination.row < half_height then d.push(:N) end
+    end
+    if (self.col < destination.col)
+      if destination.col - self.col >= half_width then d.push(:W) end
+      if destination.col - self.col < half_width then d.push(:E) end
+    end
+    if (destination.col < self.col)
+      if self.col - destination.col >= half_width then d.push(:E) end
+      if self.col - destination.col < half_width then d.push(:W) end
+    end
+    d
+  end
+  
+  def distance_to(destination)
+    vertical_dif = (self.col - destination.col).abs
+    horizontal_dif = (self.row - destination.row).abs
+    
+    vertical_distance = vertical_dif < @ai.cols - vertical_dif ? vertical_dif : @ai.cols-vertical_dif
+    horizontal_distance = horizontal_dif < @ai.rows - horizontal_dif ? horizontal_dif : @ai.rows - horizontal_dif
+    
+    return vertical_distance + horizontal_distance
+  end
 end
 
 # Represent a single field of the map.
@@ -86,6 +121,9 @@ end
 class AI
 	# Map, as an array of arrays.
 	attr_accessor :map
+  
+  attr_reader :rows
+  attr_reader :cols
 	# Number of current turn. If it's 0, we're in setup turn. If it's :game_over, you don't need to give any orders; instead, you can find out the number of players and their scores in this game.
 	attr_accessor	:turn_number
 	
