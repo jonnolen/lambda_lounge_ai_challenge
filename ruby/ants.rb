@@ -148,6 +148,8 @@ class AI
 		@enemy_ants=[]
 		@food=[]
 		@did_setup=false
+    @vision = nil
+    @vision_offsets_2 = nil
 	end
 	
 	# Returns a read-only hash of all settings.
@@ -253,9 +255,13 @@ class AI
 			end
 		end
 		
-		@my_ants=[]
-		@enemy_ants=[]
-		@food=[]
+		@my_ants = []
+		@enemy_ants = []
+		@food = []
+    @my_hills = []
+    @enemy_hills = []
+    @vision = nil
+    @vision_offsets_2 = nil
     
 		until((rd=@stdin.gets.strip)=='go')
 			_, type, row, col, owner = *rd.match(/(w|f|h|a|d) (\d+) (\d+)(?: (\d+)|)/)
@@ -270,6 +276,11 @@ class AI
         food.push @map[row][col]
 			when 'h'
 				@map[row][col].hill=owner
+        if (owner == 0)
+          my_hills.push @map[row][col]
+        else
+          enemy_hills.push @map[row][col]
+        end
 			when 'a'
 				a=Ant.new true, owner, @map[row][col], self
 				@map[row][col].ant = a
@@ -318,7 +329,10 @@ class AI
 	def enemy_ants; @enemy_ants; end
 	# Returns an array of known food sources on the gamefield.
   def food; @food; end
+  def my_hills; @my_hills end
+  def enemy_hills; @enemy_hills end
 
+  
 	# If row or col are greater than or equal map width/height, makes them fit the map.
 	#
 	# Handles negative values correctly (it may return a negative value, but always one that is a correct index).
@@ -327,15 +341,35 @@ class AI
 	def normalize row, col
 		[row % @rows, col % @cols]
 	end
+  
+  def visible? location
+    unless @vision
+      unless @vision_offsets_2
+        @vision_offsets_2 = []
+        mx = Integer(viewradius)
+        (-mx..mx+1).each do |deltaRow|
+          (-mx..mx+1).each do |deltaCol|
+            distance = deltaRow**2 + deltaCol**2
+            if (distance <= viewradius2)
+              @vision_offsets_2.push({:row=> (deltaRow % rows) - rows,
+                                     :col=> (deltaCol % cols) - cols})
+            end
+          end
+        end
+      end
+      
+      @vision = (0..rows-1).collect{Array.new(cols, false)}
+      
+      my_ants.each do |ant|
+        row,col = ant.square.row, ant.square.col
+        @vision_offsets_2.each do |loc|
+          dRow,dCol = loc[:row],loc[:col]
+          @vision[row + dRow][col +dCol] = true
+        end
+      end
+    end
+       
+    return @vision[location[:row]][location[:col]]
+  end
 end
-
-
-
-
-
-
-
-
-
-
 
