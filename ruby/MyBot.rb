@@ -27,32 +27,10 @@ def do_move_location ant, destination
   end
   
   return false
-  
 end
 
-ai.setup do |ai|
-	# your setup code here, if any
-  @unseen = Array.new
-  ai.rows.times do |row|
-    ai.cols.times do |col|
-      @unseen.push({ :row=>row, :col=>col })
-    end
-  end
-end
-
-
-ai.run do |ai|
-  @orders = Hash.new
-  @ordered_ants = Hash.new
-  
-  @targets = Hash.new
-  @assigned_ants = Hash.new
-  
-  ant_dist = Array.new
-  ai.my_hills do |hill|
-    orders[hill] = nil    
-  end
-  
+def harvest_nearby_food ai
+  ant_dist = []
   ai.food.each do |food|
     ai.my_ants.each do |ant|
       dist = ant.distance_to(food);
@@ -70,7 +48,15 @@ ai.run do |ai|
       do_move_location ant, food
     end
   end
-  
+end
+
+def prevent_hills_from_being_blocked ai
+  ai.my_hills do |hill|
+    orders[hill] = nil    
+  end
+end
+
+def send_unassigned_ants_to_explore_unseen_areas ai
   @unseen.each do |loc|
     if ai.visible? loc
       @unseen.delete loc
@@ -91,8 +77,10 @@ ai.run do |ai|
       end
     end
   end
-  
-  ai.my_hills.select{ |hill| hill.ant? and  hill.ant.owner == 0 }.each do |hill|
+end
+
+def unblock_hills_blocked_by_spawned_ants ai
+    ai.my_hills.select{ |hill| hill.ant? and  hill.ant.owner == 0 }.each do |hill|
     if not @orders.values.include? hill
       [:N,:E,:S,:W].each do |dir|
         if do_move_direction hill.ant, dir
@@ -101,13 +89,35 @@ ai.run do |ai|
       end
     end
   end
-    
-#  ai.my_ants.each do |ant|
-#		# try to go north, if possible; otherwise try east, south, west.
-#		[:N, :E, :S, :W].each do |dir|
-#			if do_move_direction ant, dir				
-#        break
-#			end
-#		end
-#	end
+end
+
+ai.setup do |ai|
+	# your setup code here, if any
+  @unseen = Array.new
+  ai.rows.times do |row|
+    ai.cols.times do |col|
+      @unseen.push({ :row=>row, :col=>col })
+    end
+  end
+end
+
+ai.run do |ai|
+  @orders = Hash.new
+  @ordered_ants = Hash.new
+  
+  @targets = Hash.new
+  @assigned_ants = Hash.new
+  
+  ant_dist = Array.new
+  
+  #ants should never attempt to traverse a hill... this blocks
+  #the hill locations.
+
+  prevent_hills_from_being_blocked ai
+  
+  harvest_nearby_food ai
+  
+  send_unassigned_ants_to_explore_unseen_areas ai
+  
+  unblock_hills_blocked_by_spawned_ants ai
 end
